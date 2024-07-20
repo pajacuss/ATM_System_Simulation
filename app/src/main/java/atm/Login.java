@@ -1,6 +1,8 @@
 package atm;
 
 import java.awt.Font;
+import java.awt.Image;
+
 import javax.swing.*;
 import java.awt.Color;
 
@@ -9,6 +11,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class Login extends JFrame implements ActionListener{
     private JLabel lWelcome, lCardNo, lPin;
@@ -28,8 +31,11 @@ public class Login extends JFrame implements ActionListener{
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(null);
-        getContentPane().setBackground(Color.WHITE);
+        setResizable(false);
         
+        ImageIcon icon = new ImageIcon(getClass().getResource("/images/atmIcon.png"));
+        Image image = icon.getImage();
+        setIconImage(image);
 
         lWelcome = new JLabel("WELCOME TO ATM");
         lWelcome.setFont(commonFont);
@@ -48,7 +54,6 @@ public class Login extends JFrame implements ActionListener{
         tfCardNo.setForeground(Color.GRAY);
         tfCardNo.setBounds(WIDTH / 2 - 200 / 2, 140, 200, 32);
         tfCardNo.setEditable(false);
-        
         tfCardNo.addMouseListener(new MouseAdapter() {
             boolean firstClicked = false; 
             // PLACEHOLDER XXXX-XXXX-XXXX-XXXX
@@ -126,35 +131,39 @@ public class Login extends JFrame implements ActionListener{
 
 
     @Override
-    public void actionPerformed(ActionEvent ae) {
-        try {
-            if(ae.getSource() == bSignIn){
-                String cardNo = tfCardNo.getText().replaceAll("-", "");
-                String pin = String.valueOf(pfPin.getPassword());
-                String query = "SELECT * FROM login WHERE cardNo = '" +cardNo+ "' AND pin = '"+pin+"'";
-                Connector connector = new Connector();
+    public void actionPerformed(ActionEvent actionEvent) {
+        if(actionEvent.getSource() == bSignIn){
+            String cardNo = tfCardNo.getText().replaceAll("-", "").strip();
+            String pin = String.valueOf(pfPin.getPassword());
+            String query = "SELECT * FROM login WHERE cardNo = '" +cardNo+ "' AND pin = '"+pin+"'";
+            Connector connector = new Connector();
+            try{
                 ResultSet rs = connector.statement.executeQuery(query);
+                String accountID;
                 if(rs.next()){
+                    accountID = rs.getString("accountID");
                     rs.close();
                     connector.statement.close();
                     connector.conn.close();
                     setVisible(false);
-                    new BankStatement();
+                    new BankStatement(accountID);
                 }
                 else{
-                    JOptionPane.showMessageDialog(null, "Incorrect card number or pin");
+                    JOptionPane.showMessageDialog(null, "Incorrect card number or pin code!");
+                    tfCardNo.setText(format);
+                    pfPin.setText("");
                 }
-            }else if(ae.getSource() == bClear){
-                tfCardNo.setText(format);
-                pfPin.setText("");
-            }else if(ae.getSource() == bSignUp){
-                setVisible(false);
-                new SignUp();
+            }catch(SQLException e){
+                e.printStackTrace();
             }
-            
-        } catch (Exception e) {
-            e.printStackTrace();
+        }else if(actionEvent.getSource() == bClear){
+            tfCardNo.setText(format);
+            pfPin.setText("");
+        }else if(actionEvent.getSource() == bSignUp){
+            setVisible(false);
+            new SignUp();
         }
+            
     }
 
     public static void main(String[] args) {
